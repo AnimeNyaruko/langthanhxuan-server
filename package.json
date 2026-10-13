@@ -1,0 +1,44 @@
+{
+  "name": "lang-thanh-xuan-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "test": "node --test dist/**/*.spec.js",
+    "db:migrate": "node scripts/run-migration.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "^12.1.2",
+    "@nestjs/core": "^12.1.2",
+    "@nestjs/platform-express": "^12.1.2",
+    "@nestjs/throttler": "^6.7.1",
+    "@supabase/supabase-js": "^2.117.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^18.0.7",
+    "helmet": "^8.3.0",
+    "jose": "^6.2.12",
+    "next-auth": "^4.24.15",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^12.0.8",
+    "@nestjs/schematics": "^12.0.6",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1",
+    "source-map-support": "^0.5.21",
+    "ts-loader": "^9.6.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^6.0.3"
+  },
+  "packageManager": "pnpm@12.9.1"
+}
