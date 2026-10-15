@@ -24,7 +24,7 @@ export class UsersController {
 		@CurrentUser() user: AuthenticatedUser,
 		@Body(new ZodValidationPipe(SignupWizardDto)) payload: SignupWizardPayload,
 	) {
-		return this.usersService.completeSignup(user.id, user.email, payload);
+		return this.usersService.completeSignup(user.id, user.email, user.image, payload);
 	}
 
 	/**

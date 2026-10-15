@@ -14,7 +14,7 @@ export class LeaderboardService {
 		const client = this.supabase.getAdminClient();
 		const { data, error } = await client
 			.from('user')
-			.select('user_id, full_name, points, location, image_url')
+			.select('user_id, full_name, points, skills, image_url')
 			.order('points', { ascending: false })
 			.limit(10);
 

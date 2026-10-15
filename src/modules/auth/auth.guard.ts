@@ -31,7 +31,7 @@ export class AuthGuard implements CanActivate {
 				.getAdminClient()
 				.from('profiles')
 				.select('role')
-				.eq('id', sub)
+				.eq('user_id', sub)
 				.single();
 
 			if (error || !data) {

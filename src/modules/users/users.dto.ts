@@ -18,7 +18,7 @@ export const SignupWizardDto = z.object({
 	method: z.array(z.enum(['online', 'offline'])).optional(),
 
 	// Step 3
-	imageUrl: z.url().optional().nullable(),
+	meeting_image_url: z.url().optional().nullable(),
 	meetingStatus: z.enum(['met', 'notMet', '']),
 	referenceInfo: z.string().max(1000).optional(),
 });

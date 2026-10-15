@@ -5,11 +5,11 @@ import {
 	Logger,
 } from '@nestjs/common';
 import { SupabaseService } from '../../config/supabase.service';
-import { decryptField, encryptField } from '../../common/security/crypto';
+import { decryptField } from '../../common/security/crypto';
 import type { SignupWizardPayload, UpdateProfilePayload } from './users.dto';
 
 export interface UserProfileRecord {
-	id: string;
+	user_id: string;
 	email: string | null;
 	fullname: string;
 	dob: string | null;
@@ -18,7 +18,7 @@ export interface UserProfileRecord {
 	custom_skill: string | null;
 	hours: number;
 	methods: string[];
-	image_url: string | null;
+	meeting_image_url: string | null;
 	meeting_status: string;
 	reference_info: string | null;
 	phone_encrypted: string | null;
@@ -36,12 +36,17 @@ export class UsersService {
 	/**
 	 * Completes the multi-step signup and upserts the profile row in Supabase.
 	 */
-	async completeSignup(userId: string, email: string | undefined, data: SignupWizardPayload) {
+	async completeSignup(
+		userId: string,
+		email: string | undefined,
+		image: string | undefined,
+		data: SignupWizardPayload,
+	) {
 		const dob = `${data.dobYear}-${data.dobMonth.padStart(2, '0')}-${data.dobDay.padStart(2, '0')}`;
 		const client = this.supabase.getAdminClient();
 
 		const record = {
-			id: userId,
+			user_id: userId,
 			email: email || null,
 			fullname: data.fullname,
 			dob,
@@ -50,24 +55,39 @@ export class UsersService {
 			custom_skill: data.customSkill || null,
 			hours: data.hours || 0,
 			methods: data.method || [],
-			image_url: data.imageUrl || null,
+			meeting_image_url: data.meeting_image_url || null,
 			meeting_status: data.meetingStatus || 'notMet',
 			reference_info: data.referenceInfo || null,
 			updated_at: new Date().toISOString(),
 		};
 
-		const { data: result, error } = await client
+		const profileResult = await client
 			.from('profiles')
-			.upsert(record, { onConflict: 'id' })
+			.upsert(record, { onConflict: 'user_id' })
 			.select()
 			.single();
 
-		if (error) {
-			this.logger.error(`Failed to save signup for user ${userId}: ${error.message}`);
+		if (profileResult.error) {
+			this.logger.error(
+				`Failed to save signup for user ${userId}: ${profileResult.error.message}`,
+			);
 			throw new InternalServerErrorException('Could not persist signup profile');
 		}
 
-		return this.sanitizeProfile(result);
+		const updateUserGoogleImgResult = await client
+			.from('user')
+			.update({ image_url: image || null })
+			.eq('user_id', userId)
+			.select()
+			.single();
+
+		if (updateUserGoogleImgResult.error) {
+			this.logger.warn(
+				`Could not update image for user ${userId}: ${updateUserGoogleImgResult.error.message}`,
+			);
+		}
+
+		return this.sanitizeProfile(profileResult.data);
 	}
 
 	/**
@@ -75,7 +95,11 @@ export class UsersService {
 	 */
 	async getProfile(userId: string) {
 		const client = this.supabase.getAdminClient();
-		const { data, error } = await client.from('profiles').select('*').eq('id', userId).single();
+		const { data, error } = await client
+			.from('profiles')
+			.select('*')
+			.eq('user_id', userId)
+			.single();
 
 		if (error || !data) {
 			throw new NotFoundException('User profile not found');
@@ -99,7 +123,8 @@ export class UsersService {
 		if (update.customSkill !== undefined) patch.custom_skill = update.customSkill;
 		if (update.hours !== undefined) patch.hours = update.hours;
 		if (update.method !== undefined) patch.methods = update.method;
-		if (update.imageUrl !== undefined) patch.image_url = update.imageUrl;
+		if (update.meeting_image_url !== undefined)
+			patch.meeting_image_url = update.meeting_image_url;
 		if (update.meetingStatus !== undefined) patch.meeting_status = update.meetingStatus;
 		if (update.referenceInfo !== undefined) patch.reference_info = update.referenceInfo;
 
@@ -110,7 +135,7 @@ export class UsersService {
 		const { data, error } = await client
 			.from('profiles')
 			.update(patch)
-			.eq('id', userId)
+			.eq('user_id', userId)
 			.select()
 			.single();
 
@@ -163,7 +188,7 @@ export class UsersService {
 		const decryptedPhone = record.phone_encrypted ? decryptField(record.phone_encrypted) : null;
 
 		return {
-			id: record.id,
+			user_id: record.user_id,
 			email: record.email,
 			fullname: record.fullname,
 			dob: record.dob,
@@ -172,7 +197,7 @@ export class UsersService {
 			customSkill: record.custom_skill,
 			hours: record.hours,
 			methods: record.methods,
-			imageUrl: record.image_url,
+			meeting_image_url: record.meeting_image_url,
 			meetingStatus: record.meeting_status,
 			referenceInfo: record.reference_info,
 			phone: decryptedPhone,
