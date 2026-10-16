@@ -18,7 +18,7 @@ export class TransactionsService {
     const client = this.supabase.getAdminClient();
     const { data, error } = await client
       .from("transactions")
-      .select("transaction_id, sender_id, receiver_id, time_sent, time_received, amount, comment")
+      .select("transaction_id, sender_id, receiver_id, time_sent, time_received, amount, comment, service_id")
       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
       .order("time_sent", { ascending: false });
 
@@ -43,6 +43,7 @@ export class TransactionsService {
         time_received,
         amount,
         comment,
+        service_id,
         sender:sender_id(user_id, full_name, email),
         receiver:receiver_id(user_id, full_name, email)
       `)

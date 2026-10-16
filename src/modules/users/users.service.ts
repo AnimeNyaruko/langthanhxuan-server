@@ -9,6 +9,7 @@ import { decryptField } from '../../common/security/crypto';
 import type { SignupWizardPayload, UpdateProfilePayload } from './users.dto';
 
 export interface UserProfileRecord {
+	profile_id: string;
 	user_id: string;
 	email: string | null;
 	fullname: string;
@@ -45,6 +46,27 @@ export class UsersService {
 		const dob = `${data.dobYear}-${data.dobMonth.padStart(2, '0')}-${data.dobDay.padStart(2, '0')}`;
 		const client = this.supabase.getAdminClient();
 
+		// The profiles.user_id foreign key requires this row to exist first.
+		const userResult = await client.from('user').upsert(
+			{
+				user_id: userId,
+				full_name: data.fullname,
+				date_of_birth: dob,
+				email: email || null,
+				location: data.location,
+				time_given: data.hours || 0,
+				image_url: image || null,
+			},
+			{ onConflict: 'user_id' },
+		);
+
+		if (userResult.error) {
+			this.logger.error(
+				`Failed to create user record for ${userId}: ${userResult.error.message}`,
+			);
+			throw new InternalServerErrorException('Could not persist user record');
+		}
+
 		const record = {
 			user_id: userId,
 			email: email || null,
@@ -72,19 +94,6 @@ export class UsersService {
 				`Failed to save signup for user ${userId}: ${profileResult.error.message}`,
 			);
 			throw new InternalServerErrorException('Could not persist signup profile');
-		}
-
-		const updateUserGoogleImgResult = await client
-			.from('user')
-			.update({ image_url: image || null })
-			.eq('user_id', userId)
-			.select()
-			.single();
-
-		if (updateUserGoogleImgResult.error) {
-			this.logger.warn(
-				`Could not update image for user ${userId}: ${updateUserGoogleImgResult.error.message}`,
-			);
 		}
 
 		return this.sanitizeProfile(profileResult.data);
@@ -172,7 +181,7 @@ export class UsersService {
 		const { data, error } = await client
 			.from('user')
 			.select(
-				'user_id, full_name, date_of_birth, email, phone_number, join_date, location, time_given, points, verification_stage, authorization',
+				'user_id, full_name, date_of_birth, email, phone_number, join_date, location, time_given, points, verification_level, authorization',
 			)
 			.order('join_date', { ascending: false });
 
@@ -188,6 +197,7 @@ export class UsersService {
 		const decryptedPhone = record.phone_encrypted ? decryptField(record.phone_encrypted) : null;
 
 		return {
+			profile_id: record.profile_id,
 			user_id: record.user_id,
 			email: record.email,
 			fullname: record.fullname,
