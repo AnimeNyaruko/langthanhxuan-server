@@ -13,9 +13,11 @@ export class LeaderboardService {
 	async getTopUsers() {
 		const client = this.supabase.getAdminClient();
 		const { data, error } = await client
-			.from('user')
-			.select('user_id, full_name, points, skills, image_url')
-			.order('points', { ascending: false })
+			.from('profiles')
+			.select(
+				'profile_id, user_id, fullname, skills, user:user_id(user_id, points, image_url)',
+			)
+			.order('points', { referencedTable: 'user', ascending: false })
 			.limit(10);
 
 		if (error) {
